@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能人流统计与考勤系统</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: "Microsoft YaHei", Arial, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; }
+.header { background: linear-gradient(135deg, #16213e, #0f3460); padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; height: 30px; }
+.header h1 { font-size: 12px; color: #00d9ff; white-space: nowrap; }
+.status-badge { display: flex; align-items: center; gap: 4px; font-size: 11px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #00ff88; animation: pulse 1.5s infinite; }
+.status-dot.stopped { background: #ff4444; animation: none; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.nav-link { color: #00d9ff; text-decoration: none; font-size: 11px; padding: 3px 8px; border: 1px solid #00d9ff; border-radius: 4px; }
+.main-content { padding: 4px; max-width: 100%; margin: 0 auto; }
+.video-container { position: relative; background: #000; border-radius: 6px; overflow: hidden; margin-bottom: 4px; width: 100%; }
+.video-container img { width: 100%; display: block; aspect-ratio: 16/9; object-fit: cover; }
+.video-overlay { position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 8px; font-size: 9px; color: #00d9ff; }
+.result-bar { background: #16213e; border-radius: 5px; padding: 4px 10px; margin-bottom: 4px; border-left: 3px solid #00d9ff; display: flex; justify-content: space-between; align-items: center; }
+.result-item { display: flex; flex-direction: row; align-items: center; gap: 4px; }
+.result-item .label { font-size: 10px; color: #888; }
+.result-item .value { font-size: 12px; font-weight: bold; color: #00d9ff; }
+.result-item .value.enter { color: #00ff88; }
+.result-item .value.exit { color: #ffaa00; }
+.control-bar { display: flex; gap: 5px; margin-bottom: 4px; }
+.btn { flex: 1; padding: 10px 6px; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 3px; min-height: 42px; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: linear-gradient(135deg, #00d9ff, #0099cc); color: #fff; }
+.btn-danger { background: linear-gradient(135deg, #ff4444, #cc0000); color: #fff; }
+.btn-warning { background: linear-gradient(135deg, #ffaa00, #cc8800); color: #fff; }
+.stats-bar { display: flex; justify-content: space-around; background: #16213e; border-radius: 5px; padding: 3px; font-size: 10px; }
+.stat-item { text-align: center; }
+.stat-item .stat-value { font-size: 11px; font-weight: bold; color: #00d9ff; }
+.stat-item .stat-label { color: #888; font-size: 9px; margin-top: 1px; }
+@media (min-width: 769px) {
+.header { padding: 15px 25px; height: auto; }
+.header h1 { font-size: 20px; }
+.status-badge { font-size: 14px; }
+.status-dot { width: 10px; height: 10px; }
+.nav-link { font-size: 14px; padding: 6px 12px; }
+.main-content { padding: 20px; max-width: 1100px; }
+.video-container img { aspect-ratio: 16/9; max-height: 540px; }
+.video-overlay { top: 10px; left: 10px; padding: 5px 12px; font-size: 13px; }
+.result-bar { padding: 12px 20px; margin-bottom: 12px; }
+.result-item { flex-direction: row; gap: 8px; }
+.result-item .label { font-size: 14px; }
+.result-item .value { font-size: 20px; }
+.control-bar { gap: 12px; margin-bottom: 12px; }
+.btn { padding: 15px 30px; font-size: 16px; min-height: 60px; border-radius: 10px; }
+.stats-bar { padding: 12px; font-size: 14px; }
+.stat-item .stat-value { font-size: 18px; }
+.stat-item .stat-label { font-size: 13px; }
+}
+@media (max-width: 480px) {
+.header h1 { font-size: 11px; }
+.main-content { padding: 3px; }
+.video-container img { aspect-ratio: 16/9; }
+.btn { min-height: 40px; font-size: 12px; padding: 8px 4px; }
+.result-item .value { font-size: 11px; }
+}
+</style>
+</head>
+<body>
+<div class="header">
+<h1>📊 人流统计</h1>
+<div class="status-badge">
+<span class="status-dot" id="statusDot"></span>
+<span id="statusText">统计中</span>
+</div>
+<a href="/dashboard" class="nav-link">后台</a>
+</div>
+
+<div class="main-content">
+<div class="video-container">
+<img src="/video_feed" alt="人流统计画面">
+<div class="video-overlay">人流统计中</div>
+</div>
+
+<div class="result-bar">
+<div class="result-item">
+<span class="label">当前:</span>
+<span class="value" id="currentCount">--</span>
+</div>
+<div class="result-item">
+<span class="label">进入:</span>
+<span class="value enter" id="enterCount">--</span>
+</div>
+<div class="result-item">
+<span class="label">离开:</span>
+<span class="value exit" id="exitCount">--</span>
+</div>
+</div>
+
+<div class="control-bar">
+<button class="btn btn-primary" onclick="startDetection()">▶ 启动</button>
+<button class="btn btn-danger" onclick="stopDetection()">⏸ 停止</button>
+<button class="btn btn-warning" onclick="resetCount()">🔄 重置</button>
+</div>
+
+<div class="stats-bar">
+<div class="stat-item">
+<div class="stat-value" id="fps">--</div>
+<div class="stat-label">FPS</div>
+</div>
+<div class="stat-item">
+<div class="stat-value" id="frameCount">--</div>
+<div class="stat-label">帧数</div>
+</div>
+<div class="stat-item">
+<div class="stat-value" id="runTime">--</div>
+<div class="stat-label">运行时间</div>
+</div>
+</div>
+</div>
+<script>
+function updateStatus() {
+fetch('/api/status').then(r => r.json()).then(data => {
+const d = data.data;
+document.getElementById('fps').textContent = d.fps || '--';
+document.getElementById('frameCount').textContent = d.frame_count || '--';
+const dot = document.getElementById('statusDot');
+const txt = document.getElementById('statusText');
+if (d.detection_enabled) {
+dot.className = 'status-dot'; txt.textContent = '统计中';
+} else {
+dot.className = 'status-dot stopped'; txt.textContent = '已停止';
+}
+});
+}
+
+function updateLatest() {
+fetch('/api/latest').then(r => r.json()).then(data => {
+const d = data.data;
+if (d.enter !== undefined) {
+document.getElementById('enterCount').textContent = d.enter + '人';
+}
+if (d.exit !== undefined) {
+document.getElementById('exitCount').textContent = d.exit + '人';
+}
+if (d.current !== undefined) {
+document.getElementById('currentCount').textContent = d.current + '人';
+}
+});
+}
+
+function startDetection() {
+fetch('/api/start', {method: 'POST'}).then(r => r.json()).then(d => { alert(d.message); updateStatus(); });
+}
+function stopDetection() {
+fetch('/api/stop', {method: 'POST'}).then(r => r.json()).then(d => { alert(d.message); updateStatus(); });
+}
+function resetCount() {
+fetch('/api/capture', {method: 'POST'}).then(r => r.json()).then(d => { alert('计数已重置'); updateLatest(); });
+}
+
+let startTime = Date.now();
+function updateRunTime() {
+const e = Math.floor((Date.now() - startTime) / 1000);
+const h = String(Math.floor(e / 3600)).padStart(2, '0');
+const m = String(Math.floor((e % 3600) / 60)).padStart(2, '0');
+const s = String(e % 60).padStart(2, '0');
+document.getElementById('runTime').textContent = `${h}:${m}:${s}`;
+}
+
+setInterval(updateStatus, 2000);
+setInterval(updateLatest, 2000);
+setInterval(updateRunTime, 1000);
+updateStatus(); updateLatest();
+</script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理后台 - 人流数据分析</title>
+<!-- 本地 ECharts（CDN 不可达时使用） -->
+<script src="/static/js/echarts.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: "Microsoft YaHei", Arial, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; }
+.header { background: linear-gradient(135deg, #16213e, #0f3460); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+.header h1 { font-size: 20px; color: #00d9ff; }
+.nav-link { color: #00d9ff; text-decoration: none; font-size: 14px; padding: 6px 12px; border: 1px solid #00d9ff; border-radius: 5px; }
+.main-content { padding: 15px; max-width: 1200px; margin: 0 auto; }
+.stats-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 15px; }
+.stat-card { background: linear-gradient(135deg, #16213e, #1a1a3e); border-radius: 10px; padding: 18px; text-align: center; border: 1px solid #0f3460; }
+.stat-card .number { font-size: 28px; font-weight: bold; color: #00d9ff; }
+.stat-card .label { font-size: 13px; color: #888; margin-top: 5px; }
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+.chart-box { background: #16213e; border-radius: 10px; padding: 15px; border: 1px solid #0f3460; }
+.chart-box h3 { font-size: 15px; color: #00d9ff; margin-bottom: 10px; }
+.chart-container { width: 100%; height: 250px; }
+.table-box { background: #16213e; border-radius: 10px; padding: 15px; border: 1px solid #0f3460; margin-bottom: 15px; }
+.table-box h3 { font-size: 15px; color: #00d9ff; margin-bottom: 10px; display: flex; justify-content: space-between; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: #0f3460; padding: 10px; text-align: left; color: #00d9ff; font-weight: normal; }
+td { padding: 8px 10px; border-bottom: 1px solid #1a1a3e; }
+.badge { padding: 3px 8px; border-radius: 10px; font-size: 11px; }
+.badge-enter { background: rgba(0, 255, 136, 0.2); color: #00ff88; }
+.badge-exit { background: rgba(255, 170, 0, 0.2); color: #ffaa00; }
+.btn-sm { padding: 4px 10px; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; background: #00d9ff; color: #1a1a2e; }
+.settings-box { background: #16213e; border-radius: 10px; padding: 15px; border: 1px solid #0f3460; }
+.settings-box h3 { font-size: 15px; color: #00d9ff; margin-bottom: 10px; }
+.setting-row { display: flex; gap: 15px; align-items: center; margin-bottom: 10px; }
+.setting-row label { font-size: 13px; color: #aaa; min-width: 100px; }
+.setting-row input { padding: 6px 10px; border: 1px solid #0f3460; border-radius: 4px; background: #1a1a2e; color: #eee; width: 120px; }
+.btn-save { padding: 6px 20px; background: linear-gradient(135deg, #00d9ff, #0099cc); border: none; border-radius: 5px; color: #fff; cursor: pointer; font-weight: bold; }
+@media (max-width: 768px) { .stats-cards { grid-template-columns: repeat(2, 1fr); } .chart-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="header">
+<h1>📊 管理后台 - 人流数据分析</h1>
+<a href="/" class="nav-link">← 返回终端控制</a>
+</div>
+
+<div class="main-content">
+<div class="stats-cards">
+<div class="stat-card"><div class="number" id="enterTotal">--</div><div class="label">进入总数</div></div>
+<div class="stat-card"><div class="number" id="exitTotal">--</div><div class="label">离开总数</div></div>
+<div class="stat-card"><div class="number" id="currentCount">--</div><div class="label">当前人数</div></div>
+<div class="stat-card"><div class="number" id="todayCount">--</div><div class="label">今日统计</div></div>
+</div>
+
+<div class="chart-row">
+<div class="chart-box">
+<h3>📈 进出人数分布</h3>
+<div class="chart-container" id="pieChart"></div>
+</div>
+<div class="chart-box">
+<h3>📊 进入vs离开统计</h3>
+<div class="chart-container" id="barChart"></div>
+</div>
+</div>
+
+<div class="table-box">
+<h3>📋 历史统计记录 <button class="btn-sm" onclick="refreshHistory()">刷新</button></h3>
+<table>
+<thead><tr><th>ID</th><th>时间</th><th>类型</th><th>人数</th></tr></thead>
+<tbody id="historyTable"><tr><td colspan="4" style="text-align:center;color:#666;">加载中...</td></tr></tbody>
+</table>
+</div>
+
+<div class="settings-box">
+<h3>⚙️ 系统设置</h3>
+<div class="setting-row"><label>计数线位置</label><input type="number" id="settingThreshold" value="240"></div>
+<div class="setting-row"><label>匹配距离</label><input type="number" id="settingAlarm" value="50"></div>
+<button class="btn-save" onclick="saveSettings()">保存设置</button>
+</div>
+</div>
+
+<script>
+function updateStatistics() {
+fetch('/api/statistics').then(r => r.json()).then(data => {
+const d = data.data;
+const byLabel = d.by_label || {};
+let enter = 0, exit = 0;
+for (const key in byLabel) {
+if (key === 'enter') enter += byLabel[key];
+else if (key === 'exit') exit += byLabel[key];
+}
+document.getElementById('enterTotal').textContent = enter;
+document.getElementById('exitTotal').textContent = exit;
+document.getElementById('currentCount').textContent = d.current !== undefined ? d.current : Math.max(0, enter - exit);
+document.getElementById('todayCount').textContent = d.today || 0;
+updatePieChart(enter, exit);
+updateBarChart(enter, exit);
+});
+}
+
+var pieChart = echarts.init(document.getElementById('pieChart'));
+function updatePieChart(enter, exit) {
+pieChart.setOption({
+tooltip: { trigger: 'item' },
+legend: { bottom: 0, textStyle: { color: '#888' } },
+series: [{ type: 'pie', radius: ['40%', '65%'], center: ['50%', '45%'],
+data: [{ value: enter, name: '进入' }, { value: exit, name: '离开' }],
+label: { color: '#eee', fontSize: 12 },
+itemStyle: { borderRadius: 5, borderColor: '#16213e', borderWidth: 2 } }]
+});
+}
+
+var barChart = echarts.init(document.getElementById('barChart'));
+function updateBarChart(enter, exit) {
+barChart.setOption({
+tooltip: { trigger: 'axis' },
+xAxis: { type: 'category', data: ['进入', '离开'], axisLabel: { color: '#888' } },
+yAxis: { type: 'value', axisLabel: { color: '#888' } },
+series: [{ data: [enter, exit], type: 'bar', itemStyle: { color: '#00d9ff' }, barWidth: '50%' }]
+});
+}
+
+function refreshHistory() {
+fetch('/api/history?limit=20').then(r => r.json()).then(data => {
+const tbody = document.getElementById('historyTable');
+if (!data.data || data.data.length === 0) {
+tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#666;">暂无记录</td></tr>';
+return;
+}
+tbody.innerHTML = data.data.map(row => {
+const isEnter = row.result_label === 'enter';
+const cls = isEnter ? 'badge-enter' : 'badge-exit';
+const txt = isEnter ? '进入' : '离开';
+return `<tr><td>${row.id}</td><td>${row.timestamp || '--'}</td>
+<td><span class="badge ${cls}">${txt}</span></td>
+<td>${row.confidence || 0}人</td></tr>`;
+}).join('');
+});
+}
+
+function saveSettings() {
+const data = {
+threshold: document.getElementById('settingThreshold').value,
+alarm: document.getElementById('settingAlarm').value
+};
+fetch('/api/settings', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) })
+.then(r => r.json()).then(d => alert(d.message));
+}
+
+setInterval(updateStatistics, 5000);
+updateStatistics();
+refreshHistory();
+window.addEventListener('resize', () => { pieChart.resize(); barChart.resize(); });
+</script>
+</body>
+</html>
