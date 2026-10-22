@@ -17,7 +17,8 @@ app = Flask(__name__)
 # ---------------- 全局状态 ----------------
 camera = CameraManager()
 counter = PeopleCounter(line_y=config.COUNT_LINE_Y,
-                        match_distance=config.MATCH_DISTANCE)
+                        match_distance=config.MATCH_DISTANCE,
+                        simulation=camera.simulation)
 db = DBHelper()
 
 state = {

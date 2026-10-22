@@ -1,0 +1,26 @@
+[Unit]
+Description=SPI touchscreen kiosk (Chromium) for smart-system
+After=smart-system.service xpt2046-penirq-kick.service
+Wants=smart-system.service
+Requires=smart-system.service
+ConditionPathExists=/usr/local/bin/spi-kiosk.sh
+
+[Service]
+Type=simple
+User=root
+TTYPath=/dev/tty2
+UtmpIdentifier=tty2
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+Environment=HOME=/root
+Environment=XDG_VTNR=2
+
+ExecCondition=/usr/local/bin/hdmi-disconnected.sh
+ExecStartPre=/home/yango/smart_system/flask_app/spi-kiosk.sh
+ExecStart=/home/yango/smart_system/flask_app/spi-chromium-kiosk.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target

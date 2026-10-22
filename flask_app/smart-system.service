@@ -1,0 +1,17 @@
+[Unit]
+Description=Flask smart-system service (人流统计与考勤系统)
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/yango/smart_system/flask_app
+Environment=SIM=auto
+ExecStart=/home/yango/smart_system/venv/bin/python app.py
+Restart=on-failure
+RestartSec=3
+User=yango
+Group=yango
+
+[Install]
+WantedBy=multi-user.target

@@ -85,10 +85,19 @@ class CameraManager:
             cfg = picam2.create_preview_configuration(
                 main={"size": (self.width, self.height), "format": "RGB888"})
             picam2.configure(cfg)
+            # 固定白平衡，避免色温漂移；曝光交给自动曝光（固定 15ms 在室内会严重欠曝）
+            try:
+                picam2.set_controls({
+                    "AwbEnable": False,
+                    "ColourGains": (1.8, 1.5),
+                    "AeEnable": True,
+                })
+            except Exception as e:
+                print(f"[camera] 控制参数设置失败(忽略): {e}")
             picam2.start()
             time.sleep(1.5)
             self.picam2 = picam2
-            print("[camera] 已启动 Picamera2")
+            print("[camera] 已启动 Picamera2（自动曝光 + 固定白平衡）")
             return
         except Exception as e:
             print(f"[camera] Picamera2 不可用: {e}")
