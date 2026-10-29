@@ -1,0 +1,11 @@
+{
+ "camera": "simulation",
+ "current": 1,
+ "detection_enabled": true,
+ "enter": 19,
+ "exit": 18,
+ "fps": 70.20343124947695,
+ "frame_count": 3969,
+ "running": true,
+ "simulation": true
+}

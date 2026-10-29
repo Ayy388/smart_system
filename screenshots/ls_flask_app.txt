@@ -1,0 +1,21 @@
+总计 96
+drwxrwxr-x 6 yango yango 4096 10月29日 15:01 .
+drwxrwxr-x 6 yango yango 4096 10月29日 15:12 ..
+-rw-rw-r-- 1 yango yango 7919 10月29日 14:34 app.py
+-rw-rw-r-- 1 yango yango 6381 10月29日 14:34 camera_manager.py
+-rw-rw-r-- 1 yango yango 1170 10月29日 14:34 config.py
+-rw-rw-r-- 1 yango yango 3586 10月29日 14:34 db_helper.py
+-rw-rw-r-- 1 yango yango  749 10月29日 14:34 db_init.py
+-rw-rw-r-- 1 yango yango 2068 10月29日 15:01 main.py
+drwxrwxr-x 2 yango yango 4096 10月29日 14:34 models
+-rw-rw-r-- 1 yango yango 5692 10月29日 14:34 person_detector.py
+drwxrwxr-x 2 yango yango 4096 10月29日 15:02 __pycache__
+-rw-rw-r-- 1 yango yango 2608 10月29日 14:34 README.md
+-rwxrwxr-x 1 yango yango  375 10月29日 14:34 run.sh
+-rw-rw-r-- 1 yango yango  365 10月29日 14:34 smart-system.service
+-rwxrwxr-x 1 yango yango  907 10月29日 14:34 spi-chromium-kiosk.sh
+-rw-rw-r-- 1 yango yango  653 10月29日 14:34 spi-kiosk.service
+-rwxrwxr-x 1 yango yango 1318 10月29日 14:34 spi-kiosk.sh
+drwxrwxr-x 3 yango yango 4096 10月29日 14:34 static
+drwxrwxr-x 2 yango yango 4096 10月29日 14:34 templates
+-rw-rw-r-- 1 yango yango 6504 10月29日 14:34 vision_module.py

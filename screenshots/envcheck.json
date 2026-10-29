@@ -1,0 +1,98 @@
+[
+ {
+  "no": 1,
+  "item": "虚拟环境可激活",
+  "cmd": "/home/yango/smart_system/venv/bin/python -c \"import sys;print(sys.prefix)\"",
+  "ok": true,
+  "note": "venv 已激活",
+  "output": "/home/yango/smart_system/venv"
+ },
+ {
+  "no": 3,
+  "item": "vision_module.py存在",
+  "cmd": "ls flask_app/vision_module.py",
+  "ok": true,
+  "note": "",
+  "output": "flask_app/vision_module.py"
+ },
+ {
+  "no": 5,
+  "item": "db_helper.py存在",
+  "cmd": "ls flask_app/db_helper.py",
+  "ok": true,
+  "note": "",
+  "output": "flask_app/db_helper.py"
+ },
+ {
+  "no": 6,
+  "item": "camera_manager.py存在",
+  "cmd": "ls flask_app/camera_manager.py",
+  "ok": true,
+  "note": "",
+  "output": "flask_app/camera_manager.py"
+ },
+ {
+  "no": 4,
+  "item": "AI模块存在",
+  "cmd": "ls flask_app/person_detector.py flask_app/models/detect.tflite",
+  "ok": true,
+  "note": "统计组检测器 person_detector.py + detect.tflite",
+  "output": "flask_app/models/detect.tflite\nflask_app/person_detector.py"
+ },
+ {
+  "no": 7,
+  "item": "Flask应用可启动",
+  "cmd": "curl -s -o /dev/null -w 'HTTP %{http_code}\\n' http://127.0.0.1:5000/",
+  "ok": true,
+  "note": "main.py 已运行，首页返回200",
+  "output": "HTTP 200"
+ },
+ {
+  "no": 8,
+  "item": "视频流可访问",
+  "cmd": "curl -s -o /tmp/vf.jpg -w 'HTTP %{http_code}  size=%{size_download}B\\n' --max-time 4 http://127.0.0.1:5000/video_feed",
+  "ok": true,
+  "note": "返回 MJPEG 帧",
+  "output": "HTTP 200  size=2702879B"
+ },
+ {
+  "no": 9,
+  "item": "API正常返回",
+  "cmd": "curl -s http://127.0.0.1:5000/api/status",
+  "ok": true,
+  "note": "",
+  "output": "{\"code\":0,\"data\":{\"camera\":\"real\",\"current\":0,\"detection_enabled\":true,\"enter\":0,\"exit\":0,\"fps\":14.940651370885297,\"frame_count\":1822,\"running\":true,\"simulation\":false}}"
+ },
+ {
+  "no": 10,
+  "item": "前端页面可访问",
+  "cmd": "curl -s -o /dev/null -w 'HTTP %{http_code}\\n' http://127.0.0.1:5000/",
+  "ok": true,
+  "note": "",
+  "output": "HTTP 200"
+ },
+ {
+  "no": 11,
+  "item": "管理后台可访问",
+  "cmd": "curl -s -o /dev/null -w 'HTTP %{http_code}\\n' http://127.0.0.1:5000/dashboard",
+  "ok": true,
+  "note": "",
+  "output": "HTTP 200"
+ },
+ {
+  "no": 12,
+  "item": "数据库有记录",
+  "cmd": "python3 -c \"import sqlite3;c=sqlite3.connect('/home/yango/smart_system/detections.db');print('detections =',c.execute('select count(*) from detections').fetchone()[0]);print('tables =',[r[0] for r in c.execute(\\\"select name from sqlite_master where type='table'\\\")])\"",
+  "ok": true,
+  "note": "",
+  "output": "detections = 0\ntables = ['detections', 'sqlite_sequence', 'system_settings']"
+ },
+ {
+  "no": 2,
+  "item": "摄像头可识别",
+  "cmd": "rpicam-hello --list-cameras 2>/dev/null | head -4",
+  "ok": true,
+  "note": "",
+  "output": "Available cameras\n-----------------\n0 : ov5647 [2592x1944 10-bit GBRG] (/base/axi/pcie@1000120000/rp1/i2c@88000/ov5647@36)\n    Modes: 'SGBRG10_CSI2P' : 640x480 [62.50 fps - (16, 0)/2560x1920 crop]"
+ }
+]

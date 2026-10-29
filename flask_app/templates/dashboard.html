@@ -22,20 +22,25 @@ body { font-family: "Microsoft YaHei", Arial, sans-serif; background: #1a1a2e; c
 .chart-box h3 { font-size: 15px; color: #00d9ff; margin-bottom: 10px; }
 .chart-container { width: 100%; height: 250px; }
 .table-box { background: #16213e; border-radius: 10px; padding: 15px; border: 1px solid #0f3460; margin-bottom: 15px; }
-.table-box h3 { font-size: 15px; color: #00d9ff; margin-bottom: 10px; display: flex; justify-content: space-between; }
+.table-box h3 { font-size: 15px; color: #00d9ff; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th { background: #0f3460; padding: 10px; text-align: left; color: #00d9ff; font-weight: normal; }
 td { padding: 8px 10px; border-bottom: 1px solid #1a1a3e; }
 .badge { padding: 3px 8px; border-radius: 10px; font-size: 11px; }
 .badge-enter { background: rgba(0, 255, 136, 0.2); color: #00ff88; }
 .badge-exit { background: rgba(255, 170, 0, 0.2); color: #ffaa00; }
-.btn-sm { padding: 4px 10px; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; background: #00d9ff; color: #1a1a2e; }
+.btn-sm { padding: 4px 10px; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; background: #00d9ff; color: #1a1a2e; text-decoration: none; display: inline-block; }
 .settings-box { background: #16213e; border-radius: 10px; padding: 15px; border: 1px solid #0f3460; }
 .settings-box h3 { font-size: 15px; color: #00d9ff; margin-bottom: 10px; }
 .setting-row { display: flex; gap: 15px; align-items: center; margin-bottom: 10px; }
 .setting-row label { font-size: 13px; color: #aaa; min-width: 100px; }
 .setting-row input { padding: 6px 10px; border: 1px solid #0f3460; border-radius: 4px; background: #1a1a2e; color: #eee; width: 120px; }
 .btn-save { padding: 6px 20px; background: linear-gradient(135deg, #00d9ff, #0099cc); border: none; border-radius: 5px; color: #fff; cursor: pointer; font-weight: bold; }
+.kv { font-size: 13px; color: #bbb; margin-bottom: 8px; }
+.kv b { color: #00d9ff; font-weight: normal; }
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,0.88); color: #00ff88; padding: 10px 22px; border-radius: 22px; font-size: 13px; opacity: 0; pointer-events: none; transition: all .25s; border: 1px solid #00ff88; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.err { color: #ff6b6b; border-color: #ff6b6b; }
 @media (max-width: 768px) { .stats-cards { grid-template-columns: repeat(2, 1fr); } .chart-row { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -49,8 +54,8 @@ td { padding: 8px 10px; border-bottom: 1px solid #1a1a3e; }
 <div class="stats-cards">
 <div class="stat-card"><div class="number" id="enterTotal">--</div><div class="label">进入总数</div></div>
 <div class="stat-card"><div class="number" id="exitTotal">--</div><div class="label">离开总数</div></div>
-<div class="stat-card"><div class="number" id="currentCount">--</div><div class="label">当前人数</div></div>
-<div class="stat-card"><div class="number" id="todayCount">--</div><div class="label">今日统计</div></div>
+<div class="stat-card"><div class="number" id="currentCount">--</div><div class="label">当前在场</div></div>
+<div class="stat-card"><div class="number" id="todayCount">--</div><div class="label">今日 进/出</div></div>
 </div>
 
 <div class="chart-row">
@@ -65,37 +70,68 @@ td { padding: 8px 10px; border-bottom: 1px solid #1a1a3e; }
 </div>
 
 <div class="table-box">
-<h3>📋 历史统计记录 <button class="btn-sm" onclick="refreshHistory()">刷新</button></h3>
+<h3>🕐 今日分时人流 <span class="kv" id="hourlyHint">按本地时间统计</span></h3>
+<div class="chart-container" id="hourlyChart" style="height:220px;"></div>
+</div>
+
+<div class="table-box">
+<h3>📋 历史统计记录<span>
+<button class="btn-sm" onclick="refreshHistory()">刷新</button>
+<a class="btn-sm" href="#" onclick="downloadCsv();return false;">导出CSV</a>
+</span></h3>
 <table>
-<thead><tr><th>ID</th><th>时间</th><th>类型</th><th>人数</th></tr></thead>
+<thead><tr><th>ID</th><th>时间（本地）</th><th>类型</th><th>来源</th></tr></thead>
 <tbody id="historyTable"><tr><td colspan="4" style="text-align:center;color:#666;">加载中...</td></tr></tbody>
+</table>
+</div>
+
+<div class="table-box">
+<h3>🗓 考勤 / 人流日报
+<span><input type="date" id="reportDate" style="padding:4px 8px;border:1px solid #0f3460;border-radius:4px;background:#1a1a2e;color:#eee;">
+<button class="btn-sm" onclick="loadReport()">查询</button></span></h3>
+<div class="kv" id="reportSummary">—</div>
+<table>
+<thead><tr><th>时段</th><th>进入</th><th>离开</th><th>净流入</th></tr></thead>
+<tbody id="reportTable"><tr><td colspan="4" style="text-align:center;color:#666;">点击查询加载</td></tr></tbody>
 </table>
 </div>
 
 <div class="settings-box">
 <h3>⚙️ 系统设置</h3>
-<div class="setting-row"><label>计数线位置</label><input type="number" id="settingThreshold" value="240"></div>
-<div class="setting-row"><label>匹配距离</label><input type="number" id="settingAlarm" value="50"></div>
+<div class="setting-row"><label>计数线方向</label><select id="settingAxis" onchange="syncAxisHint()" style="padding:6px;border-radius:6px;background:#1b2430;color:#dbe7f3;border:1px solid #2b3a4d;">
+<option value="x">竖线（人左右过线）</option><option value="y">横线（人上下过线）</option></select></div>
+<div class="setting-row"><label>计数线位置 <small id="lineHint">竖线填 x（0~640，默认 320 居中）</small></label><input type="number" id="settingLine" value="320"></div>
+<div class="setting-row"><label>匹配距离</label><input type="number" id="settingDist" value="60"></div>
+<div class="kv" id="debounceHint">计数线两侧各 28 px 为过渡带，同一轨迹 3 秒内只计一次</div>
 <button class="btn-save" onclick="saveSettings()">保存设置</button>
 </div>
 </div>
 
+<div id="toast"></div>
 <script>
+const API_TOKEN = "{{ api_token }}";
+
+function toast(msg, isErr) {
+const el = document.getElementById('toast');
+el.textContent = msg;
+el.className = isErr ? 'show err' : 'show';
+clearTimeout(el._t);
+el._t = setTimeout(() => { el.className = isErr ? 'err' : ''; }, 1800);
+}
+
 function updateStatistics() {
 fetch('/api/statistics').then(r => r.json()).then(data => {
 const d = data.data;
 const byLabel = d.by_label || {};
-let enter = 0, exit = 0;
-for (const key in byLabel) {
-if (key === 'enter') enter += byLabel[key];
-else if (key === 'exit') exit += byLabel[key];
-}
+const enter = byLabel['enter'] || 0;
+const exit = byLabel['exit'] || 0;
 document.getElementById('enterTotal').textContent = enter;
 document.getElementById('exitTotal').textContent = exit;
-document.getElementById('currentCount').textContent = d.current !== undefined ? d.current : Math.max(0, enter - exit);
-document.getElementById('todayCount').textContent = d.today || 0;
+document.getElementById('currentCount').textContent = d.current;
+document.getElementById('todayCount').textContent = `${d.today_enter || 0}/${d.today_exit || 0}`;
 updatePieChart(enter, exit);
 updateBarChart(enter, exit);
+updateHourlyChart(d.hourly || {});
 });
 }
 
@@ -121,6 +157,24 @@ series: [{ data: [enter, exit], type: 'bar', itemStyle: { color: '#00d9ff' }, ba
 });
 }
 
+var hourlyChart = echarts.init(document.getElementById('hourlyChart'));
+var lastHourly = {};
+function updateHourlyChart(hourly) {
+lastHourly = hourly;
+const hours = Object.keys(hourly).sort();
+hourlyChart.setOption({
+tooltip: { trigger: 'axis' },
+legend: { data: ['进入', '离开'], textStyle: { color: '#888' }, top: 0 },
+grid: { left: 40, right: 20, top: 30, bottom: 25 },
+xAxis: { type: 'category', data: hours.map(h => h + '时'), axisLabel: { color: '#888', fontSize: 10 } },
+yAxis: { type: 'value', axisLabel: { color: '#888' }, splitLine: { lineStyle: { color: '#0f3460' } } },
+series: [
+{ name: '进入', type: 'line', smooth: true, data: hours.map(h => hourly[h].enter), itemStyle: { color: '#00ff88' }, areaStyle: { opacity: 0.15 } },
+{ name: '离开', type: 'line', smooth: true, data: hours.map(h => hourly[h].exit), itemStyle: { color: '#ffaa00' } }
+]
+});
+}
+
 function refreshHistory() {
 fetch('/api/history?limit=20').then(r => r.json()).then(data => {
 const tbody = document.getElementById('historyTable');
@@ -132,26 +186,77 @@ tbody.innerHTML = data.data.map(row => {
 const isEnter = row.result_label === 'enter';
 const cls = isEnter ? 'badge-enter' : 'badge-exit';
 const txt = isEnter ? '进入' : '离开';
-return `<tr><td>${row.id}</td><td>${row.timestamp || '--'}</td>
-<td><span class="badge ${cls}">${txt}</span></td>
-<td>${row.confidence || 0}人</td></tr>`;
+return `<tr><td>${row.id}</td><td>${row.timestamp || '--'}</td>`
++ `<td><span class="badge ${cls}">${txt}</span></td>`
++ `<td>${row.source || '--'}</td></tr>`;
 }).join('');
 });
 }
 
-function saveSettings() {
-const data = {
-threshold: document.getElementById('settingThreshold').value,
-alarm: document.getElementById('settingAlarm').value
-};
-fetch('/api/settings', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) })
-.then(r => r.json()).then(d => alert(d.message));
+function loadReport() {
+const day = document.getElementById('reportDate').value;
+const url = day ? '/api/report?date=' + day : '/api/report';
+fetch(url).then(r => r.json()).then(data => {
+const d = data.data;
+document.getElementById('reportSummary').innerHTML =
+`日期 <b>${d.date}</b> ｜ 进入 <b>${d.enter}</b> 人，离开 <b>${d.exit}</b> 人，`
++ `净流入 <b>${d.net}</b> 人 ｜ 首次进入 <b>${d.first_enter || '—'}</b> ｜ `
++ `高峰时段 <b>${d.peak_hour ? d.peak_hour + ' 时' : '—'}</b>（${d.peak_enter} 人）`;
+const tbody = document.getElementById('reportTable');
+const rows = d.hourly.filter(h => h.enter || h.exit);
+tbody.innerHTML = rows.length ? rows.map(h =>
+`<tr><td>${h.hour}:00 - ${h.hour}:59</td><td>${h.enter}</td><td>${h.exit}</td>`
++ `<td>${h.enter - h.exit}</td></tr>`).join('')
+: '<tr><td colspan="4" style="text-align:center;color:#666;">该日无记录</td></tr>';
+});
 }
 
+function downloadCsv() {
+window.location = '/api/export.csv?limit=5000';
+}
+
+function syncAxisHint() {
+const ax = document.getElementById('settingAxis').value;
+document.getElementById('lineHint').textContent = ax === 'x'
+? '竖线填 x（0~640，默认 320 居中）' : '横线填 y（0~480，默认 220）';
+}
+
+function loadSettings() {
+fetch('/api/settings').then(r => r.json()).then(data => {
+const d = data.data;
+document.getElementById('settingAxis').value = d.count_axis || 'x';
+document.getElementById('settingLine').value = d.count_line_y;
+syncAxisHint();
+document.getElementById('settingDist').value = d.match_distance;
+document.getElementById('debounceHint').textContent =
+`计数线两侧各 ${d.hysteresis} px 为过渡带，同一轨迹 ${d.cooldown} 秒内只计一次`;
+});
+}
+
+function saveSettings() {
+const payload = {
+count_axis: document.getElementById('settingAxis').value,
+count_line_y: document.getElementById('settingLine').value,
+match_distance: document.getElementById('settingDist').value
+};
+fetch('/api/settings', { method: 'POST',
+headers: { 'Content-Type': 'application/json', 'X-API-Token': API_TOKEN },
+body: JSON.stringify(payload) })
+.then(r => r.json().then(d => ({ ok: r.ok, d })))
+.then(({ ok, d }) => toast(ok ? d.message : ('保存失败：' + d.message), !ok));
+}
+
+const today = new Date();
+document.getElementById('reportDate').value = today.toISOString().slice(0, 10);
+
 setInterval(updateStatistics, 5000);
+setInterval(refreshHistory, 5000);          // 历史表自动刷新
 updateStatistics();
 refreshHistory();
-window.addEventListener('resize', () => { pieChart.resize(); barChart.resize(); });
+loadSettings();
+window.addEventListener('resize', () => {
+pieChart.resize(); barChart.resize(); hourlyChart.resize();
+});
 </script>
 </body>
 </html>

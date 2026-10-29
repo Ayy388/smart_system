@@ -1,0 +1,98 @@
+[
+ {
+  "no": 1,
+  "item": "视频流",
+  "method": "curl -o vf.jpg /video_feed",
+  "ok": true,
+  "detail": "HTTP 200，返回 MJPEG 帧",
+  "ms": null
+ },
+ {
+  "no": 2,
+  "item": "终端控制界面",
+  "method": "GET /",
+  "ok": true,
+  "detail": "HTTP 200，返回 index.html",
+  "ms": null
+ },
+ {
+  "no": 3,
+  "item": "管理后台",
+  "method": "GET /dashboard",
+  "ok": true,
+  "detail": "HTTP 200，返回 dashboard.html",
+  "ms": null
+ },
+ {
+  "no": 4,
+  "item": "状态API",
+  "method": "GET /api/status",
+  "ok": true,
+  "detail": "fps=14.9 frames=825 camera=real",
+  "ms": 24
+ },
+ {
+  "no": 5,
+  "item": "启动API",
+  "method": "POST /api/start",
+  "ok": true,
+  "detail": "已启动人流统计",
+  "ms": 2
+ },
+ {
+  "no": 6,
+  "item": "停止API",
+  "method": "POST /api/stop",
+  "ok": true,
+  "detail": "已停止人流统计",
+  "ms": 2
+ },
+ {
+  "no": 7,
+  "item": "拍照/重置API",
+  "method": "POST /api/capture",
+  "ok": true,
+  "detail": "计数已重置 {\"current\": 0, \"enter\": 0, \"exit\": 0}",
+  "ms": 2
+ },
+ {
+  "no": 8,
+  "item": "历史API",
+  "method": "GET /api/history?limit=3",
+  "ok": true,
+  "detail": "返回 3 条记录",
+  "ms": 2
+ },
+ {
+  "no": 9,
+  "item": "统计API",
+  "method": "GET /api/statistics",
+  "ok": true,
+  "detail": "{\"by_label\": {\"enter\": 20, \"exit\": 20}, \"current\": 0, \"today\": 40, \"total\": 40}",
+  "ms": 2
+ },
+ {
+  "no": 10,
+  "item": "最新结果API",
+  "method": "GET /api/latest",
+  "ok": true,
+  "detail": "{\"current\": 0, \"enter\": 0, \"exit\": 0}",
+  "ms": 1
+ },
+ {
+  "no": 11,
+  "item": "设置API",
+  "method": "POST /api/settings",
+  "ok": true,
+  "detail": "设置已保存",
+  "ms": 19
+ },
+ {
+  "no": 12,
+  "item": "数据库存储",
+  "method": "select count(*) from detections",
+  "ok": true,
+  "detail": "共 40 条；{'enter': 20, 'exit': 20}",
+  "ms": null
+ }
+]

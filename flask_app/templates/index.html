@@ -34,6 +34,10 @@ body { font-family: "Microsoft YaHei", Arial, sans-serif; background: #1a1a2e; c
 .stat-item { text-align: center; }
 .stat-item .stat-value { font-size: 11px; font-weight: bold; color: #00d9ff; }
 .stat-item .stat-label { color: #888; font-size: 9px; margin-top: 1px; }
+/* 轻提示（替代 alert，避免遮挡 3.5 寸屏画面） */
+#toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,0.85); color: #00ff88; padding: 8px 18px; border-radius: 20px; font-size: 12px; opacity: 0; pointer-events: none; transition: all .25s; z-index: 99; border: 1px solid #00ff88; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.err { color: #ff6b6b; border-color: #ff6b6b; }
 @media (min-width: 769px) {
 .header { padding: 15px 25px; height: auto; }
 .header h1 { font-size: 20px; }
@@ -52,6 +56,7 @@ body { font-family: "Microsoft YaHei", Arial, sans-serif; background: #1a1a2e; c
 .stats-bar { padding: 12px; font-size: 14px; }
 .stat-item .stat-value { font-size: 18px; }
 .stat-item .stat-label { font-size: 13px; }
+#toast { font-size: 14px; }
 }
 @media (max-width: 480px) {
 .header h1 { font-size: 11px; }
@@ -75,7 +80,7 @@ body { font-family: "Microsoft YaHei", Arial, sans-serif; background: #1a1a2e; c
 <div class="main-content">
 <div class="video-container">
 <img src="/video_feed" alt="人流统计画面">
-<div class="video-overlay">人流统计中</div>
+<div class="video-overlay" id="overlayText">人流统计中</div>
 </div>
 
 <div class="result-bar">
@@ -105,20 +110,46 @@ body { font-family: "Microsoft YaHei", Arial, sans-serif; background: #1a1a2e; c
 <div class="stat-label">FPS</div>
 </div>
 <div class="stat-item">
+<div class="stat-value" id="dfps">--</div>
+<div class="stat-label">检测FPS</div>
+</div>
+<div class="stat-item">
 <div class="stat-value" id="frameCount">--</div>
 <div class="stat-label">帧数</div>
 </div>
 <div class="stat-item">
-<div class="stat-value" id="runTime">--</div>
-<div class="stat-label">运行时间</div>
+<div class="stat-value" id="todayCount">--</div>
+<div class="stat-label">今日</div>
 </div>
 </div>
 </div>
+
+<div id="toast"></div>
 <script>
+const API_TOKEN = "{{ api_token }}";
+
+function toast(msg, isErr) {
+const el = document.getElementById('toast');
+el.textContent = msg;
+el.className = isErr ? 'show err' : 'show';
+clearTimeout(el._t);
+el._t = setTimeout(() => { el.className = isErr ? 'err' : ''; }, 1600);
+}
+
+function apiPost(url, body) {
+const opt = { method: 'POST', headers: { 'X-API-Token': API_TOKEN } };
+if (body) {
+opt.headers['Content-Type'] = 'application/json';
+opt.body = JSON.stringify(body);
+}
+return fetch(url, opt).then(r => r.json().then(d => ({ ok: r.ok, d })));
+}
+
 function updateStatus() {
 fetch('/api/status').then(r => r.json()).then(data => {
 const d = data.data;
 document.getElementById('fps').textContent = d.fps || '--';
+document.getElementById('dfps').textContent = d.detect_fps || '--';
 document.getElementById('frameCount').textContent = d.frame_count || '--';
 const dot = document.getElementById('statusDot');
 const txt = document.getElementById('statusText');
@@ -127,32 +158,37 @@ dot.className = 'status-dot'; txt.textContent = '统计中';
 } else {
 dot.className = 'status-dot stopped'; txt.textContent = '已停止';
 }
+const det = d.detector || {};
+const camName = d.camera === 'real' ? '摄像头' : '模拟';
+document.getElementById('overlayText').textContent =
+`${camName} · ${det.type === 'ssd' ? 'SSD检测' : '背景差分'} · 轨迹${d.tracks || 0}`;
 });
 }
 
 function updateLatest() {
 fetch('/api/latest').then(r => r.json()).then(data => {
 const d = data.data;
-if (d.enter !== undefined) {
-document.getElementById('enterCount').textContent = d.enter + '人';
+if (d.enter !== undefined) document.getElementById('enterCount').textContent = d.enter + '人';
+if (d.exit !== undefined) document.getElementById('exitCount').textContent = d.exit + '人';
+if (d.current !== undefined) document.getElementById('currentCount').textContent = d.current + '人';
+});
 }
-if (d.exit !== undefined) {
-document.getElementById('exitCount').textContent = d.exit + '人';
-}
-if (d.current !== undefined) {
-document.getElementById('currentCount').textContent = d.current + '人';
-}
+
+function updateToday() {
+fetch('/api/statistics').then(r => r.json()).then(data => {
+const d = data.data;
+document.getElementById('todayCount').textContent = `${d.today_enter || 0}/${d.today_exit || 0}`;
 });
 }
 
 function startDetection() {
-fetch('/api/start', {method: 'POST'}).then(r => r.json()).then(d => { alert(d.message); updateStatus(); });
+apiPost('/api/start').then(({ ok, d }) => { toast(ok ? d.message : ('失败：' + d.message), !ok); updateStatus(); });
 }
 function stopDetection() {
-fetch('/api/stop', {method: 'POST'}).then(r => r.json()).then(d => { alert(d.message); updateStatus(); });
+apiPost('/api/stop').then(({ ok, d }) => { toast(ok ? d.message : ('失败：' + d.message), !ok); updateStatus(); });
 }
 function resetCount() {
-fetch('/api/capture', {method: 'POST'}).then(r => r.json()).then(d => { alert('计数已重置'); updateLatest(); });
+apiPost('/api/reset').then(({ ok, d }) => { toast(ok ? '计数已重置' : ('失败：' + d.message), !ok); updateLatest(); });
 }
 
 let startTime = Date.now();
@@ -161,13 +197,14 @@ const e = Math.floor((Date.now() - startTime) / 1000);
 const h = String(Math.floor(e / 3600)).padStart(2, '0');
 const m = String(Math.floor((e % 3600) / 60)).padStart(2, '0');
 const s = String(e % 60).padStart(2, '0');
-document.getElementById('runTime').textContent = `${h}:${m}:${s}`;
+document.getElementById('runTime') && (document.getElementById('runTime').textContent = `${h}:${m}:${s}`);
 }
 
 setInterval(updateStatus, 2000);
 setInterval(updateLatest, 2000);
+setInterval(updateToday, 10000);
 setInterval(updateRunTime, 1000);
-updateStatus(); updateLatest();
+updateStatus(); updateLatest(); updateToday();
 </script>
 </body>
 </html>

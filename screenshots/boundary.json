@@ -1,0 +1,65 @@
+{
+ "real": {
+  "normal": {
+   "desc": "正常光照（自动曝光）",
+   "mean": 104.9,
+   "sat": 0.0,
+   "dark": 0.0,
+   "det_avg": 0.0
+  },
+  "bright": {
+   "desc": "强光/过曝（ISP 亮度 +0.4）",
+   "mean": 204.5,
+   "sat": 38.6,
+   "dark": 0.0,
+   "det_avg": 0.0
+  },
+  "dark": {
+   "desc": "暗光/欠曝（ISP 亮度 -0.5）",
+   "mean": 13.6,
+   "sat": 0.0,
+   "dark": 62.2,
+   "det_avg": 0.0
+  }
+ },
+ "fast_move": {
+  "events": 7,
+  "enter": 4,
+  "exit": 3,
+  "detail": [
+   [
+    "enter",
+    2
+   ],
+   [
+    "enter",
+    1
+   ],
+   [
+    "exit",
+    3
+   ],
+   [
+    "exit",
+    2
+   ],
+   [
+    "exit",
+    1
+   ],
+   [
+    "enter",
+    3
+   ],
+   [
+    "enter",
+    2
+   ]
+  ]
+ },
+ "occlusion": {
+  "events": 2,
+  "enter": 2,
+  "exit": 0
+ }
+}
